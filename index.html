@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Vibrant Recipe Book</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+  body {
+    background: linear-gradient(135deg, #FF6B6B, #FFD93D);
+    min-height: 100vh;
+    color: #333;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 2.5em;
+    color: white;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .container {
+    max-width: 900px;
+    margin: auto;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  }
+
+  input, textarea, button {
+    width: 100%;
+    margin: 8px 0;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1em;
+  }
+
+  input, textarea {
+    background: rgba(255, 255, 255, 0.9);
+    outline: none;
+  }
+
+  button {
+    background: #FF6B6B;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button:hover { background: #ff4b4b; }
+
+  .search-box {
+    margin: 20px 0;
+    text-align: center;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+  }
+
+  .card:hover { transform: translateY(-5px); }
+
+  .card img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+  }
+
+  .card-content {
+    padding: 12px;
+  }
+
+  .card h3 {
+    margin-bottom: 8px;
+    color: #FF6B6B;
+  }
+
+  .modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 90%;
+    text-align: left;
+  }
+
+  .modal-content h2 { color: #FF6B6B; }
+
+  .close-btn {
+    background: #FFD93D;
+    color: black;
+    margin-top: 10px;
+  }
+
+  .delete-btn {
+    background: #ff4b4b;
+    color: white;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h1>My Vibrant Recipe Book</h1>
+<div class="container">
+  <h2>Add a Recipe</h2>
+  <input type="text" id="recipeName" placeholder="Recipe Name">
+  <textarea id="recipeIngredients" placeholder="Ingredients (comma separated)"></textarea>
+  <textarea id="recipeSteps" placeholder="Steps (comma separated)"></textarea>
+  <input type="text" id="recipeImage" placeholder="Image URL (optional)">
+  <button onclick="addRecipe()">Add Recipe</button>
+
+  <div class="search-box">
+    <input type="text" id="search" placeholder="Search recipes..." oninput="displayRecipes()">
+  </div>
+
+  <h2>Your Recipes</h2>
+  <div class="cards" id="recipeList"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="recipeModal">
+  <div class="modal-content">
+    <h2 id="modalName"></h2>
+    <img id="modalImage" style="width:100%;height:180px;object-fit:cover;border-radius:8px;">
+    <h3>Ingredients</h3>
+    <ul id="modalIngredients"></ul>
+    <h3>Steps</h3>
+    <ol id="modalSteps"></ol>
+    <button class="close-btn" onclick="closeModal()">Close</button>
+    <button class="delete-btn" onclick="deleteRecipe()">Delete Recipe</button>
+  </div>
+</div>
+
+<script>
+let recipes = JSON.parse(localStorage.getItem('recipes')) || [
+  {
+    name: "Classic Pancakes",
+    ingredients: ["Flour", "Milk", "Eggs", "Baking Powder", "Sugar", "Salt"],
+    steps: ["Mix dry ingredients", "Whisk milk & eggs", "Cook until golden"],
+    image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTsqOvjl2f8vYeK1gmDsM402QOGzzKfzu9BvQ&s"
+  },
+  {
+    name: "Spaghetti Aglio e Olio",
+    ingredients: ["Spaghetti", "Garlic", "Olive Oil", "Chili Flakes", "Parsley"],
+    steps: ["Boil pasta", "Sauté garlic & chili", "Toss with pasta & parsley"],
+    image: "https://cookingwithayeh.com/wp-content/uploads/2025/02/Spaghetti-Aglio-e-Olio-SQ.jpg"
+  },
+  {
+    name: "Caesar Salad",
+    ingredients: ["Lettuce", "Croutons", "Caesar Dressing", "Parmesan"],
+    steps: ["Chop lettuce", "Mix dressing", "Top with croutons & parmesan"],
+    image: "https://images.unsplash.com/photo-1553621042-f6e147245754"
+  },
+  {
+    name: "Chocolate Brownies",
+    ingredients: ["Flour", "Cocoa Powder", "Butter", "Eggs", "Sugar"],
+    steps: ["Mix ingredients", "Bake at 180°C for 25 min", "Cool & serve"],
+    image: "https://icecreambakery.in/wp-content/uploads/2024/12/Brownie-Recipe-with-Cocoa-Powder-821x821.jpg"
+  },
+  {
+    name: "Mango Smoothie",
+    ingredients: ["Mango", "Yogurt", "Honey", "Ice Cubes"],
+    steps: ["Blend all ingredients", "Pour & garnish", "Serve chilled"],
+    image: "https://greenheartlove.com/wp-content/uploads/2022/08/tropical-mango-smoothie-vegan-2.jpg"
+  }
+];
+
+let selectedIndex = null;
+
+function addRecipe() {
+  const name = document.getElementById('recipeName').value.trim();
+  const ingredients = document.getElementById('recipeIngredients').value.split(',').map(i=>i.trim());
+  const steps = document.getElementById('recipeSteps').value.split(',').map(s=>s.trim());
+  const image = document.getElementById('recipeImage').value.trim() || "https://images.unsplash.com/photo-1512058564366-c9e3a16b9b24";
+
+  if (!name || ingredients.length === 0 || steps.length === 0) {
+    alert("Please fill all required fields!");
+    return;
+  }
+
+  recipes.push({ name, ingredients, steps, image });
+  localStorage.setItem('recipes', JSON.stringify(recipes));
+  displayRecipes();
+  document.getElementById('recipeName').value = "";
+  document.getElementById('recipeIngredients').value = "";
+  document.getElementById('recipeSteps').value = "";
+  document.getElementById('recipeImage').value = "";
+}
+
+function displayRecipes() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const container = document.getElementById('recipeList');
+  container.innerHTML = "";
+
+  recipes
+    .filter(r => r.name.toLowerCase().includes(search) || r.ingredients.join(",").toLowerCase().includes(search))
+    .forEach((r, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <img src="${r.image}" alt="${r.name}">
+        <div class="card-content">
+          <h3>${r.name}</h3>
+          <p>${r.ingredients.slice(0,3).join(", ")}...</p>
+        </div>
+      `;
+      card.onclick = () => openModal(i);
+      container.appendChild(card);
+    });
+}
+
+function openModal(index) {
+  selectedIndex = index;
+  const r = recipes[index];
+  document.getElementById('modalName').innerText = r.name;
+  document.getElementById('modalImage').src = r.image;
+  document.getElementById('modalIngredients').innerHTML = r.ingredients.map(i=>`<li>${i}</li>`).join("");
+  document.getElementById('modalSteps').innerHTML = r.steps.map(s=>`<li>${s}</li>`).join("");
+  document.getElementById('recipeModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('recipeModal').style.display = 'none';
+}
+
+function deleteRecipe() {
+  if (selectedIndex !== null) {
+    if (confirm("Delete this recipe?")) {
+      recipes.splice(selectedIndex, 1);
+      localStorage.setItem('recipes', JSON.stringify(recipes));
+      displayRecipes();
+      closeModal();
+    }
+  }
+}
+
+displayRecipes();
+</script>
+
+</body>
+</html>
